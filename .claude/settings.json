@@ -1,0 +1,31 @@
+{
+  "env": {
+    "ANTHROPIC_AUTH_TOKEN": "afe7a7db7aa8494e8b99452a5cb9dfc2.o6cVlvMmyHgBj7hn",
+    "ANTHROPIC_API_KEY": "e9e4370d5e4b4f9a9064917e33c05546.OYxIfnwwRFCf1XPD",
+    "ZAI_API_KEY": "e9e4370d5e4b4f9a9064917e33c05546.OYxIfnwwRFCf1XPD",
+    "ANTHROPIC_BASE_URL": "https://api.z.ai/api/anthropic",
+    "API_TIMEOUT_MS": "3000000",
+    "CLAUDE_CODE_DISABLE_NONESSENTIAL_TRAFFIC": "1",
+    "AUTO_COMPACT_THRESHOLD": "185000"
+  },
+  "permissions": {
+    "allow": [],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  },
+  "model": "opus",
+  "enabledPlugins": {
+    "plan@awesome-claude-code-plugins": true,
+    "commit@awesome-claude-code-plugins": true,
+    "openapi-expert@awesome-claude-code-plugins": true,
+    "context7-docs-fetcher@awesome-claude-code-plugins": true,
+    "planning-prd-agent@awesome-claude-code-plugins": true,
+    "context7@claude-plugins-official": true,
+    "pr-review-toolkit@claude-plugins-official": true,
+    "glm-plan-usage@zai-coding-plugins": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "ultrathink@awesome-claude-code-plugins": true
+  },
+  "language": "Русский"
+}

@@ -1,0 +1,57 @@
+{
+  "name": "vs-enhanced",
+  "version": "1.0.0",
+  "description": "Verbalized Sampling enhanced commands and skills - scientifically-proven prompting technique for improved decision quality",
+  "author": "Custom Integration",
+  "homepage": "https://arxiv.org/abs/2510.01171v3",
+  "plugins": [
+    {
+      "name": "refractor-vs",
+      "displayName": "VS Refactor",
+      "description": "Refactor code with 5 approaches and probability assessment",
+      "source": "./commands/refractor-vs.md",
+      "category": "commands",
+      "keywords": ["refactor", "verbalized-sampling", "optimization", "code-quality"]
+    },
+    {
+      "name": "code-review-vs",
+      "displayName": "VS Code Review",
+      "description": "Code review with multi-perspective analysis and confidence scores",
+      "source": "./commands/code-review-vs.md",
+      "category": "commands",
+      "keywords": ["review", "verbalized-sampling", "quality", "security"]
+    },
+    {
+      "name": "plan-vs",
+      "displayName": "VS Plan",
+      "description": "Implementation planning with 5 strategies and risk assessment",
+      "source": "./commands/plan-vs.md",
+      "category": "commands",
+      "keywords": ["plan", "verbalized-sampling", "architecture", "strategy"]
+    },
+    {
+      "name": "optimize-vs",
+      "displayName": "VS Optimize",
+      "description": "Code optimization with 5 strategies and impact probabilities",
+      "source": "./commands/optimize-vs.md",
+      "category": "commands",
+      "keywords": ["optimize", "verbalized-sampling", "performance", "efficiency"]
+    },
+    {
+      "name": "feature-dev-vs",
+      "displayName": "VS Feature Dev",
+      "description": "Feature development with VS-based architecture decisions",
+      "source": "./commands/feature-dev-vs.md",
+      "category": "commands",
+      "keywords": ["feature", "verbalized-sampling", "development", "architecture"]
+    },
+    {
+      "name": "state-management-advisor-vs",
+      "displayName": "VS State Management Advisor",
+      "description": "State management recommendations with probability-based placement",
+      "source": "./skills/state-management-advisor-vs/SKILL.md",
+      "category": "skills",
+      "keywords": ["state", "verbalized-sampling", "react", "redux", "architecture"]
+    }
+  ]
+}

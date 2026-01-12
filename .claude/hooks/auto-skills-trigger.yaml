@@ -1,0 +1,204 @@
+# ═══════════════════════════════════════════════════════════════════════════════
+# AUTO-SKILLS TRIGGER HOOKS (Dynamic Discovery)
+# ═══════════════════════════════════════════════════════════════════════════════
+# These hooks dynamically scan ~/.claude/skills/*/SKILL.md on each trigger
+# to discover available skills and match them against current context.
+
+version: "2.0"
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# SESSION START - Dynamic skill discovery and suggestion
+# ═══════════════════════════════════════════════════════════════════════════════
+SessionStart:
+  - matcher: "*"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Dynamic Skill Discovery (SessionStart)
+          ════════════════════════════════════════════════════════════════════════════════
+
+          STEP 1: SCAN AVAILABLE SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Use Glob tool with pattern: ~/.claude/skills/*/SKILL.md
+          Use Read tool to extract from each file:
+            • name (from frontmatter)
+            • description (from frontmatter)
+            • triggers (if specified in frontmatter)
+
+          STEP 2: ANALYZE USER REQUEST
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Current user input: {user_input}
+
+          For each skill found, compare:
+            → Does skill description contain keywords from user request?
+            → Does user intent match skill purpose?
+
+          STEP 3: SUGGEST MATCHING SKILL
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          If match found:
+            "I can use /{skill-name} for this. {brief_description_from_skill}"
+          If no match:
+            Proceed normally (skills remain available for later)
+
+          IMPORTANT: Only suggest skills that actually exist in ~/.claude/skills/
+          ════════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# PRE TOOL USE - Check if skill should replace the tool call
+# ═══════════════════════════════════════════════════════════════════════════════
+PreToolUse:
+  - matcher: "Task"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Pre-Task Dynamic Check
+          ════════════════════════════════════════════════════════════════════════════════
+
+          About to invoke: Task tool with subagent="{subagent_type}"
+
+          STEP 1: SCAN ALL SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Glob: ~/.claude/skills/*/SKILL.md
+          Read each to extract: name, description, category
+
+          STEP 2: CHECK IF SKILL EXISTS FOR THIS TASK
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Current task: {task_description}
+
+          For each skill:
+            → Does skill name/description match this task type?
+            → Is this a specialized skill for the work being done?
+
+          DECISION:
+            • If matching skill found → USE SKILL FIRST (via Skill tool)
+            • If no skill match → Proceed with Task tool
+
+          Priority: Specialist Skills > General Task Tool
+          ════════════════════════════════════════════════════════════════════════════════
+
+  - matcher: "Write|Edit"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Pre-Write Dynamic Validation Check
+          ════════════════════════════════════════════════════════════════════════════════
+
+          About to modify: {file_path}
+
+          STEP 1: SCAN FOR VALIDATION SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Glob: ~/.claude/skills/*/SKILL.md
+          Extract skills with: "validation", "check", "review", "analyze" in name/description
+
+          STEP 2: MATCH TO FILE TYPE
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Does any validation skill match this file type?
+            • React/component → skill with "component", "React", "FSD"
+            • API/endpoint → skill with "API", "RTK", "endpoint"
+            • Test file → skill with "test", "coverage"
+
+          If match: "Consider running /{skill-name} before writing?"
+          Then proceed with Write/Edit
+          ════════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# POST TOOL USE - Suggest follow-up skills based on work done
+# ═══════════════════════════════════════════════════════════════════════════════
+PostToolUse:
+  - matcher: "Task"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Post-Task Dynamic Suggestion
+          ════════════════════════════════════════════════════════════════════════════════
+
+          Task completed: {subagent_type}
+
+          STEP 1: SCAN ALL SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Glob: ~/.claude/skills/*/SKILL.md
+          Read each: name, description
+
+          STEP 2: FIND RELEVANT FOLLOW-UP SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Work done: {result_summary}
+
+          Find skills that:
+            • Validate the type of work completed
+            • Have "validation", "review", "check" in name/description
+            • Match the domain (architecture, code, tests, etc.)
+
+          Suggest: "Consider /{skill-name} for validation"
+          Max 1-2 brief suggestions
+          ════════════════════════════════════════════════════════════════════════════════
+
+  - matcher: "Write|Edit"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Post-Write Dynamic Suggestion
+          ════════════════════════════════════════════════════════════════════════════════
+
+          File modified: {file_path}
+
+          Quick scan: Glob ~/.claude/skills/*/SKILL.md
+
+          If validation skill matches file type:
+            "/{skill-name} available for validation"
+          ════════════════════════════════════════════════════════════════════════════════
+
+# ═══════════════════════════════════════════════════════════════════════════════
+# STOP - Review all available skills vs skills used
+# ═══════════════════════════════════════════════════════════════════════════════
+Stop:
+  - matcher: "*"
+    hooks:
+      - type: prompt
+        isMeta: true
+        prompt: |
+          ════════════════════════════════════════════════════════════════════════════════
+          AUTO-SKILLS: Session Review (Stop)
+          ════════════════════════════════════════════════════════════════════════════════
+
+          STEP 1: LIST ALL AVAILABLE SKILLS
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Glob: ~/.claude/skills/*/SKILL.md
+          Read each to list: name, description
+
+          STEP 2: COMPARE AVAILABLE vs USED
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          Skills invoked this session: {skills_invoked}
+
+          Skills available but unused:
+            [List all skills found in ~/.claude/skills/ that weren't used]
+
+          STEP 3: IDENTIFY MISSED OPPORTUNITIES
+          ─────────────────────────────────────────────────────────────────────────────────
+
+          For each unused skill:
+            Could it have helped with today's tasks?
+            Brief note if relevant
+
+          Learning: Remember patterns for next session
+          ════════════════════════════════════════════════════════════════════════════════

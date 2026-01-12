@@ -1,0 +1,138 @@
+{
+  "awesome-claude-code-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "ccplugins/marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\awesome-claude-code-plugins",
+    "lastUpdated": "2025-12-28T13:35:43.571Z"
+  },
+  "claude-plugins-official": {
+    "source": {
+      "source": "github",
+      "repo": "anthropics/claude-plugins-official"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\claude-plugins-official",
+    "lastUpdated": "2026-01-07T18:06:24.230Z"
+  },
+  "zai-coding-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "zai-org/zai-coding-plugins"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\zai-coding-plugins",
+    "lastUpdated": "2026-01-07T17:52:35.424Z"
+  },
+  "the-startup": {
+    "source": {
+      "source": "github",
+      "repo": "rsmdt/the-startup"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\the-startup",
+    "lastUpdated": "2026-01-10T10:47:59.825Z"
+  },
+  "claude-plugin-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "JosiahSiegel/claude-code-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\claude-plugin-marketplace",
+    "lastUpdated": "2026-01-10T10:48:08.474Z"
+  },
+  "dansasser-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "dansasser/claude-code-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\dansasser-marketplace",
+    "lastUpdated": "2026-01-10T10:48:15.420Z"
+  },
+  "multi-agent-intelligence-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "jmanhype/claude-code-plugins"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\multi-agent-intelligence-marketplace",
+    "lastUpdated": "2026-01-10T10:48:23.254Z"
+  },
+  "pleaseai": {
+    "source": {
+      "source": "github",
+      "repo": "pleaseai/claude-code-plugins"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\pleaseai",
+    "lastUpdated": "2026-01-10T10:48:37.194Z"
+  },
+  "superpowers-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "obra/superpowers-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\superpowers-marketplace",
+    "lastUpdated": "2026-01-10T10:48:51.072Z"
+  },
+  "wookstar-claude-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "henkisdabro/wookstar-claude-code-plugins"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\wookstar-claude-plugins",
+    "lastUpdated": "2026-01-10T10:48:58.960Z"
+  },
+  "feedmob-claude-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "feed-mob/claude-code-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\feedmob-claude-plugins",
+    "lastUpdated": "2026-01-10T10:49:05.513Z"
+  },
+  "awesome-claude-plugins": {
+    "source": {
+      "source": "github",
+      "repo": "GiladShoham/awesome-claude-plugins"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\awesome-claude-plugins",
+    "lastUpdated": "2026-01-10T10:49:11.451Z"
+  },
+  "alberto-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "dashed/claude-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\alberto-marketplace",
+    "lastUpdated": "2026-01-10T10:49:24.455Z"
+  },
+  "hyperskill-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "hyperskill/claude-code-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\hyperskill-marketplace",
+    "lastUpdated": "2026-01-10T10:49:31.166Z"
+  },
+  "mintmcp-claude-code": {
+    "source": {
+      "source": "github",
+      "repo": "mintmcp/mintmcp-claude-code"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\mintmcp-claude-code",
+    "lastUpdated": "2026-01-10T10:49:37.312Z"
+  },
+  "mileschou-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "MilesChou/claude-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\mileschou-marketplace",
+    "lastUpdated": "2026-01-10T10:49:44.379Z"
+  },
+  "netresearch-claude-code-marketplace": {
+    "source": {
+      "source": "github",
+      "repo": "netresearch/claude-code-marketplace"
+    },
+    "installLocation": "C:\\Users\\Anton.Valkovskiy\\.claude\\plugins\\marketplaces\\netresearch-claude-code-marketplace",
+    "lastUpdated": "2026-01-10T10:50:58.121Z"
+  }
+}
