@@ -1,5 +1,5 @@
 {
-  "name": "make-brand",
+  "name": "@rzv/make-brand",
   "version": "0.1.1",
   "description": "Minimal brand toolkit for Zod",
   "keywords": [
@@ -28,12 +28,8 @@
   ],
   "types": "./dist/index.d.ts",
   "type": "module",
-  "main": "./dist/index.mjs",
   "exports": {
-    ".": {
-    "types": "./dist/index.d.ts",
-    "import": "./dist/index.mjs"
-  },
+    ".": "./dist/index.mjs",
     "./package.json": "./package.json"
   },
   "publishConfig": {
