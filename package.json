@@ -1,0 +1,59 @@
+{
+  "name": "make-brand",
+  "version": "0.0.0",
+  "description": "Minimal brand toolkit for Zod",
+  "homepage": "https://github.com/ruimage/make-brand#readme",
+  "bugs": {
+    "url": "https://github.com/ruimage/make-brand/issues"
+  },
+  "license": "MIT",
+  "author": "Valkouski Anton <valkouski.anton@gmail.com>",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ruimage/make-brand.git"
+  },
+  "keywords": [
+    "brand",
+    "branded",
+    "nominal",
+    "types",
+    "typescript",
+    "zod",
+    "validation",
+    "type-safety",
+    "runtime"
+  ],
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "exports": {
+    ".": "./dist/index.mjs",
+    "./package.json": "./package.json"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "vp pack",
+    "dev": "vp pack --watch",
+    "test": "vp test",
+    "check": "vp check",
+    "prepublishOnly": "vp run build",
+    "release:patch": "bumpp patch",
+    "release:minor": "bumpp minor",
+    "release:major": "bumpp major"
+  },
+  "devDependencies": {
+    "@types/node": "^25.5.0",
+    "@typescript/native-preview": "7.0.0-dev.20260316.1",
+    "bumpp": "^11.0.1",
+    "typescript": "^5.9.3",
+    "vite-plus": "^0.1.11"
+  },
+  "overrides": {
+    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+  },
+  "packageManager": "npm@11.12.0"
+}
