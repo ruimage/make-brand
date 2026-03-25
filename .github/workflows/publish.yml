@@ -22,6 +22,12 @@ jobs:
           node-version: "22"
           cache: true
 
+      - name: Setup npm registry auth
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
       - name: Install dependencies
         run: vp install --frozen-lockfile
 
@@ -49,4 +55,4 @@ jobs:
       - name: Publish to npm
         run: npm publish --provenance --access public
         env:
-          NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
