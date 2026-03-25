@@ -6,6 +6,7 @@ export default defineConfig({
     exports: true,
   },
   lint: {
+    ignorePatterns: ["vite.config.ts", "bumpp.config.ts"],
     options: {
       typeAware: true,
       typeCheck: true,
