@@ -1,6 +1,6 @@
 {
   "name": "@rzv/make-brand",
-  "version": "0.1.10",
+  "version": "0.1.11",
   "description": "Minimal brand toolkit for Zod",
   "keywords": [
     "brand",
