@@ -40,6 +40,7 @@
     "dev": "vp pack --watch",
     "test": "vp test",
     "check": "vp check",
+    "check:fix": "vp check --fix",
     "prepublishOnly": "vp run build",
     "release:patch": "bumpp patch",
     "release:minor": "bumpp minor",

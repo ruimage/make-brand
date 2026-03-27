@@ -63,19 +63,19 @@ const Brand = makeBrand(schema, "BrandName");
 
 `makeBrand` returns a `BrandKit` with the following fields:
 
-| Field / method | Description |
-| --- | --- |
-| `schema` | Branded Zod schema you can reuse in larger schemas |
-| `brandName` | Runtime brand name |
-| `create(value)` | Parses and returns a branded value, throws on invalid input |
-| `safeCreate(value)` | Returns a branded value or `null` |
-| `matches(value)` | Runtime type guard based on schema validation |
-| `ensure(value, message?)` | Assertion helper, throws `Error` on invalid input |
-| `toPrimitive(value)` | Returns the underlying runtime value |
-| `same(a, b, compareFn?)` | Equality check, default is strict equality |
-| `compare(a, b, compareFn?)` | Sort helper, default uses `<` / `>` |
-| `refineTo(next)` | Creates a new brand kit with the same brand name and a new schema |
-| `pipeTo(next)` | Pipes the current branded schema into another Zod schema and returns a new brand kit |
+| Field / method              | Description                                                                          |
+| --------------------------- | ------------------------------------------------------------------------------------ |
+| `schema`                    | Branded Zod schema you can reuse in larger schemas                                   |
+| `brandName`                 | Runtime brand name                                                                   |
+| `create(value)`             | Parses and returns a branded value, throws on invalid input                          |
+| `safeCreate(value)`         | Returns a branded value or `null`                                                    |
+| `matches(value)`            | Runtime type guard based on schema validation                                        |
+| `ensure(value, message?)`   | Assertion helper, throws `Error` on invalid input                                    |
+| `toPrimitive(value)`        | Returns the underlying runtime value                                                 |
+| `same(a, b, compareFn?)`    | Equality check, default is strict equality                                           |
+| `compare(a, b, compareFn?)` | Sort helper, default uses `<` / `>`                                                  |
+| `refineTo(next)`            | Creates a new brand kit with the same brand name and a new schema                    |
+| `pipeTo(next)`              | Pipes the current branded schema into another Zod schema and returns a new brand kit |
 
 ## Validation Patterns
 
@@ -162,9 +162,7 @@ import { makeBrand } from "@rzv/make-brand";
 
 const QuantityBrand = makeBrand(z.number().int().positive(), "Quantity");
 
-const PercentageBrand = QuantityBrand.refineTo(
-  z.number().int().min(0).max(100),
-);
+const PercentageBrand = QuantityBrand.refineTo(z.number().int().min(0).max(100));
 
 const UppercaseNameBrand = makeBrand(z.string().min(1), "DisplayName").pipeTo(
   z.string().transform((value) => value.trim().toUpperCase()),
