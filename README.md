@@ -74,6 +74,7 @@ const Brand = makeBrand(schema, "BrandName");
 | `toPrimitive(value)`        | Returns the underlying runtime value                                                 |
 | `same(a, b, compareFn?)`    | Equality check, default is strict equality                                           |
 | `compare(a, b, compareFn?)` | Sort helper, default uses `<` / `>`                                                  |
+| `combine(...brands)`        | Combines this brand with 1-4 additional brands or an array via intersection          |
 | `refineTo(next)`            | Creates a new brand kit with the same brand name and a new schema                    |
 | `pipeTo(next)`              | Pipes the current branded schema into another Zod schema and returns a new brand kit |
 
@@ -174,14 +175,59 @@ UppercaseNameBrand.create("  alice  "); // "ALICE"
 
 If you need `refineTo` to preserve previous constraints, include them again in the new schema explicitly.
 
+## `combine`
+
+Combines multiple brands into a single brand using Zod intersection. The resulting brand name joins all contributor names with `&`.
+
+```ts
+import { z } from "zod";
+import { makeBrand } from "@rzv/make-brand";
+
+const IntBrand = makeBrand(z.number().int(), "Int");
+const PositiveBrand = makeBrand(z.number().positive(), "Positive");
+
+const PositiveInt = IntBrand.combine(PositiveBrand);
+// PositiveInt.brandName === "Int&Positive"
+
+PositiveInt.create(5); // 5
+PositiveInt.create(-1); // throws ZodError (not positive)
+PositiveInt.create(1.5); // throws ZodError (not int)
+```
+
+Up to 4 additional brands as arguments:
+
+```ts
+const MaxHundred = makeBrand(z.number().max(100), "MaxHundred");
+
+const BoundedPositiveInt = IntBrand.combine(PositiveBrand, MaxHundred);
+// BoundedPositiveInt.brandName === "Int&Positive&MaxHundred"
+```
+
+Or pass an array:
+
+```ts
+const StrictInt = IntBrand.combine([PositiveBrand, MaxHundred]);
+// StrictInt.brandName === "Int&Positive&MaxHundred"
+```
+
+The combined schema is usable in `z.object`:
+
+```ts
+const Schema = z.object({ value: PositiveInt.schema });
+const result = Schema.parse({ value: 42 });
+```
+
 ## Exported Types
 
 The package also exports the main utility types:
 
-- `BrandKit`
-- `BrandSymbol`
-- `BrandedType`
-- `BrandedSchema`
+- `BrandKit` — the full toolkit type returned by `makeBrand`
+- `BrandSymbol` — the brand marker `{ readonly [z.$brand]: T }`
+- `BrandedType<T, B>` — `T & BrandSymbol<B>`
+- `BrandedSchema<TSchema, B>` — a Zod schema that produces branded output
+- `BrandCombineFn` — overloaded function signature for `combine`
+- `ExtractBrandName<B>` — extracts the brand name from a `BrandKit`
+- `JoinBrands<T>` — joins a tuple of brand names with `&`
 
 Example:
 
@@ -207,6 +253,15 @@ npm run release:patch
 npm run release:minor
 npm run release:major
 ```
+
+## LLM-Ready Documentation
+
+This repository includes documentation files optimized for LLM consumption:
+
+- **[llms.txt](./llms.txt)** — compact index following the [llms.txt convention](https://llmstxt.org), discoverable by Context7 and other LLM tools
+- **[llms-full.txt](./llms-full.txt)** — complete API reference in a single file for direct injection into LLM context
+
+These files are automatically indexed by [Context7](https://context7.com) and compatible with any tool that follows the `llms.txt` standard.
 
 ## License
 

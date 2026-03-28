@@ -1,0 +1,281 @@
+# @rzv/make-brand — Full API Reference
+
+> **Package**: `@rzv/make-brand` | **Peer dependency**: `zod ^4.3.6` | **Module**: ESM-only
+>
+> Minimal brand toolkit for Zod. Turns a Zod schema into a type-safe toolkit for creating, validating, comparing, and composing branded (nominal) types.
+
+## Core Concept
+
+TypeScript is structurally typed — two `string` values are interchangeable even when they represent different domains (e.g. `UserId` vs `OrderId`). `makeBrand` adds nominal typing on top of Zod schemas while keeping values as plain primitives at runtime.
+
+- Runtime validation comes from Zod
+- Type safety comes from the brand marker (`{ readonly [z.$brand]: "BrandName" }`)
+- Values stay plain strings, numbers, or objects at runtime — no wrappers
+
+## Installation
+
+```bash
+npm install @rzv/make-brand zod
+```
+
+```bash
+pnpm add @rzv/make-brand zod
+```
+
+```bash
+bun add @rzv/make-brand zod
+```
+
+## API Reference
+
+### `makeBrand(schema, brandName)` → `BrandKit`
+
+```ts
+import { z } from "zod";
+import { makeBrand } from "@rzv/make-brand";
+
+const UserIdBrand = makeBrand(z.string().uuid(), "UserId");
+type UserId = z.infer<typeof UserIdBrand.schema>;
+```
+
+Returns a `BrandKit` object with the following fields:
+
+### Creation & Validation
+
+| Method | Signature | Throws? | Returns |
+|--------|-----------|---------|---------|
+| `create(value)` | `(value: unknown) => Brand` | Yes — `ZodError` | Branded value |
+| `safeCreate(value)` | `(value: unknown) => Brand \| null` | No | Branded value or `null` |
+| `matches(value)` | `(value: unknown) => value is Brand` | No | `boolean` — acts as type guard |
+| `ensure(value, message?)` | `(value: unknown, message?: string) => asserts value is Brand` | Yes — `Error` | `void` |
+
+### Properties
+
+| Property | Type | Description |
+|----------|------|-------------|
+| `schema` | `BrandedSchema<TSchema, TBrand>` | Branded Zod schema — use in `z.object()` composition |
+| `brandName` | `TBrand` (string literal) | Runtime brand name, e.g. `"UserId"` |
+
+### Utilities
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `toPrimitive(value)` | `(value: Brand) => unknown` | Strips brand typing, returns raw value |
+| `same(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => boolean` | Equality check. Default: `===`. Accepts custom comparator. |
+| `compare(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => -1 \| 0 \| 1` | Sort helper. Default: `<` / `>`. Works with `Array.sort()`. |
+
+### Composition
+
+| Method | Signature | Description |
+|--------|-----------|-------------|
+| `refineTo(nextSchema)` | `<N>(next: N) => BrandKit<N, TBrand>` | Replace schema with new one, keep same brand name. Does NOT preserve previous constraints. |
+| `pipeTo(nextSchema)` | `<N>(next: N) => BrandKit<ZodTypeAny, TBrand>` | Pipe current branded schema into another schema (e.g. with `.transform()`). Keeps brand. |
+| `combine(...brands)` | `(b1, b2?, b3?, b4?) => BrandKit` or `([b1, b2, ...]) => BrandKit` | Intersection of schemas. Brand name joins with `&`. Up to 4 additional brands as args, or pass an array. |
+
+### Exported Types
+
+```ts
+import type {
+  BrandKit,           // Full toolkit type
+  BrandSymbol,        // { readonly [z.$brand]: T }
+  BrandedType,        // T & BrandSymbol<B>
+  BrandedSchema,      // Zod schema producing branded output
+  BrandCombineFn,     // Overloaded combine function signature
+  ExtractBrandName,   // Extract brand name from BrandKit
+  JoinBrands,         // Join tuple of brand names with &
+} from "@rzv/make-brand";
+```
+
+---
+
+## Usage Patterns
+
+### 1. Basic — Prevent Accidental Type Mixing
+
+```ts
+const UserIdBrand = makeBrand(z.string().uuid(), "UserId");
+const OrderIdBrand = makeBrand(z.string().uuid(), "OrderId");
+
+type UserId = z.infer<typeof UserIdBrand.schema>;
+type OrderId = z.infer<typeof OrderIdBrand.schema>;
+
+const userId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
+const orderId = OrderIdBrand.create("6ba7b810-9dad-11d1-80b4-00c04fd430c8");
+
+function getUser(id: UserId) { /* ... */ }
+
+getUser(userId);          // OK
+// getUser(orderId);      // Type error — OrderId is not assignable to UserId
+// getUser("some-string"); // Type error — string is not assignable to UserId
+```
+
+### 2. Safe Creation — No Exceptions
+
+```ts
+const maybeId = UserIdBrand.safeCreate("not-a-uuid");
+// maybeId === null
+
+const validId = UserIdBrand.safeCreate("550e8400-e29b-41d4-a716-446655440000");
+// validId === "550e8400-e29b-41d4-a716-446655440000" (branded)
+```
+
+### 3. Type Guard — Narrowing `unknown`
+
+```ts
+const input: unknown = "550e8400-e29b-41d4-a716-446655440000";
+
+if (UserIdBrand.matches(input)) {
+  // input is narrowed to UserId here
+  getUser(input);
+}
+```
+
+### 4. Assertion — Fail Fast
+
+```ts
+function processId(id: unknown) {
+  UserIdBrand.ensure(id, "Invalid user ID provided");
+  // id is narrowed to UserId after this line
+}
+```
+
+### 5. Schema Composition — Use `.schema` in `z.object()`
+
+```ts
+const UserIdBrand = makeBrand(z.string().uuid(), "UserId");
+const QuantityBrand = makeBrand(z.number().int().positive(), "Quantity");
+
+const OrderSchema = z.object({
+  userId: UserIdBrand.schema,
+  quantity: QuantityBrand.schema,
+});
+
+const order = OrderSchema.parse({
+  userId: "550e8400-e29b-41d4-a716-446655440000",
+  quantity: 5,
+});
+// order.userId is UserId, order.quantity is Quantity
+```
+
+### 6. Numeric Brands — Quantities, Prices, Percentages
+
+```ts
+const QuantityBrand = makeBrand(z.number().int().positive(), "Quantity");
+const PriceBrand = makeBrand(z.number().nonnegative(), "Price");
+const PercentageBrand = makeBrand(z.number().min(0).max(100), "Percentage");
+
+const qty = QuantityBrand.create(5);
+const price = PriceBrand.create(19.99);
+
+// function addQuantity(a: Quantity, b: Quantity): Quantity
+// addQuantity(qty, price);  // Type error — Price is not Quantity
+```
+
+### 7. Sorting & Equality
+
+```ts
+const a = QuantityBrand.create(5);
+const b = QuantityBrand.create(10);
+
+QuantityBrand.same(a, QuantityBrand.create(5));  // true
+QuantityBrand.compare(a, b);                      // -1
+
+const sorted = [b, a].sort(QuantityBrand.compare);
+
+// Custom comparison for one call:
+QuantityBrand.compare(a, b, (x, y) => x > y ? -1 : x < y ? 1 : 0);
+```
+
+### 8. `refineTo` — Tighter Constraints, Same Brand
+
+```ts
+const IntBrand = makeBrand(z.number().int(), "Int");
+
+const Percentage = IntBrand.refineTo(z.number().int().min(0).max(100));
+// Percentage.brandName === "Int" (same brand)
+
+Percentage.create(50);   // OK
+// Percentage.create(200); // throws — exceeds max
+// Percentage.create(1.5); // throws — not int (constraint from refineTo schema)
+```
+
+> **Important**: `refineTo` replaces the schema entirely. It does NOT merge with the previous schema. Include all constraints you need in the new schema.
+
+### 9. `pipeTo` — Transform While Branding
+
+```ts
+const UpperBrand = makeBrand(z.string().min(1), "Upper").pipeTo(
+  z.string().transform(s => s.trim().toUpperCase())
+);
+
+UpperBrand.create("  hello  "); // "HELLO"
+```
+
+### 10. `combine` — Intersection of Multiple Brands
+
+```ts
+const IntBrand = makeBrand(z.number().int(), "Int");
+const PositiveBrand = makeBrand(z.number().positive(), "Positive");
+const MaxHundred = makeBrand(z.number().max(100), "MaxHundred");
+
+// With separate arguments (up to 4 additional):
+const PositiveInt = IntBrand.combine(PositiveBrand);
+// PositiveInt.brandName === "Int&Positive"
+
+const Bounded = IntBrand.combine(PositiveBrand, MaxHundred);
+// Bounded.brandName === "Int&Positive&MaxHundred"
+
+// With array:
+const BoundedArr = IntBrand.combine([PositiveBrand, MaxHundred]);
+// BoundedArr.brandName === "Int&Positive&MaxHundred"
+
+PositiveInt.create(5);    // OK
+// PositiveInt.create(-1);  // throws — not positive
+// PositiveInt.create(1.5); // throws — not int
+
+// Combined schema works in z.object:
+const Schema = z.object({ value: PositiveInt.schema });
+Schema.parse({ value: 42 }); // OK
+```
+
+### 11. Unwrap to Primitive
+
+```ts
+const userId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
+const raw: unknown = UserIdBrand.toPrimitive(userId);
+// raw is the same string, but without branded typing
+```
+
+---
+
+## Common Errors & How to Fix
+
+| Error | Cause | Fix |
+|-------|-------|-----|
+| `Type 'string' is not assignable to type 'UserId'` | Passing a plain value where branded is expected | Use `Brand.create(value)` to create branded value |
+| `ZodError` on `create()` | Value doesn't match the schema | Validate input before creating or use `safeCreate()` |
+| `Error: combine requires at least 1 additional brand` | Called `combine()` with empty array | Pass at least one `BrandKit` to `combine()` |
+| `refineTo` loses constraints | `refineTo` replaces the schema entirely | Include ALL constraints in the new schema passed to `refineTo` |
+
+---
+
+## Design Principles
+
+1. **Values are plain at runtime** — no wrapper objects, no class instances. A `UserId` is just a string.
+2. **Brand marker is non-enumerable** — `JSON.stringify` and spread operators work normally.
+3. **Schema-first** — validation rules come from Zod, branding is layered on top.
+4. **Idempotent branding** — if a schema already has the same brand, `makeBrand` won't double-brand it.
+5. **Composable** — brands can be combined via intersection, refined, or piped through transformations.
+
+---
+
+## Quick Decision Tree
+
+```
+Need a branded type?
+├─ Need runtime validation? → makeBrand(zodSchema, "Name")
+├─ Need just compile-time safety? → type Brand = T & { readonly [z.$brand]: "Name" }
+├─ Multiple constraints? → combine() or refineTo()
+├─ Transform on create? → pipeTo()
+└─ Use in z.object()? → use .schema property
+```

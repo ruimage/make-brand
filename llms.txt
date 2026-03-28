@@ -1,0 +1,16 @@
+# @rzv/make-brand
+> Minimal brand toolkit for Zod. Turns a Zod schema into a type-safe toolkit for creating, validating, comparing, and composing branded (nominal) types. Prevents accidental mixing of structurally similar types like UserId and OrderId.
+
+`zod ^4.3.6` is a peer dependency. The package is ESM-only.
+
+## Documentation
+- [Full API reference and examples](./llms-full.txt): Complete documentation for LLM consumption — all methods, types, patterns, and error handling
+- [README](./README.md): Human-readable documentation with installation, quick start, and usage examples
+
+## Source
+- [makeBrand implementation](./src/make-brand.ts): Core function that creates a BrandKit from a Zod schema
+- [Type definitions](./src/types.ts): BrandKit, BrandSymbol, BrandedType, BrandedSchema, BrandCombineFn types
+- [Test suite](./tests/index.test.ts): Comprehensive tests for all methods
+
+## Optional
+- [LLM Guide](./LLM-GUIDE.md): Standalone reference file optimized for LLM context windows
