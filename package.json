@@ -1,6 +1,6 @@
 {
   "name": "@rzv/make-brand",
-  "version": "0.1.12",
+  "version": "0.2.0",
   "description": "Minimal brand toolkit for Zod",
   "keywords": [
     "brand",
@@ -44,12 +44,14 @@
     "prepublishOnly": "vp run build",
     "release:patch": "bumpp patch",
     "release:minor": "bumpp minor",
-    "release:major": "bumpp major"
+    "release:major": "bumpp major",
+    "prepare": "husky"
   },
   "devDependencies": {
     "@types/node": "^25.5.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
     "bumpp": "^11.0.1",
+    "husky": "^9.1.7",
     "typescript": "^5.9.3",
     "vite-plus": "^0.1.11"
   },
