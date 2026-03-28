@@ -215,6 +215,18 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
   ) => -1 | 0 | 1;
 
   /**
+   * Combines this brand with one or more additional brands using intersection.
+   * This brand is always the first in the resulting combined brand name.
+   *
+   * @example
+   * const PositiveInt = IntBrand.combine(PositiveBrand);
+   * PositiveInt.brandName; // "Int&Positive"
+   * PositiveInt.create(5); // OK
+   * PositiveInt.create(-1); // throws
+   */
+  combine: BrandCombineFn<TSchema, TBrand>;
+
+  /**
    * Creates a new BrandKit with a refined schema, preserving the same brand.
    * Useful for adding additional validation constraints.
    *
@@ -246,3 +258,78 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
    */
   pipeTo: <N extends z.ZodTypeAny>(next: N) => BrandKit<z.ZodTypeAny, TBrand>;
 };
+
+/**
+ * Combine function type for BrandKit.combine method.
+ * Supports combining the owner brand with 1-4 additional brands or an array of brands.
+ *
+ * @template TSchema - The owner brand's Zod schema type
+ * @template TBrand - The owner brand's name
+ */
+export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends string> {
+  <T2 extends z.ZodType<z.infer<TSchema>>, B2 extends string>(
+    other: BrandKit<T2, B2>,
+  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}`>;
+
+  <
+    T2 extends z.ZodType<z.infer<TSchema>>,
+    B2 extends string,
+    T3 extends z.ZodType<z.infer<TSchema>>,
+    B3 extends string,
+  >(
+    b2: BrandKit<T2, B2>,
+    b3: BrandKit<T3, B3>,
+  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}`>;
+
+  <
+    T2 extends z.ZodType<z.infer<TSchema>>,
+    B2 extends string,
+    T3 extends z.ZodType<z.infer<TSchema>>,
+    B3 extends string,
+    T4 extends z.ZodType<z.infer<TSchema>>,
+    B4 extends string,
+  >(
+    b2: BrandKit<T2, B2>,
+    b3: BrandKit<T3, B3>,
+    b4: BrandKit<T4, B4>,
+  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}&${B4}`>;
+
+  <
+    T2 extends z.ZodType<z.infer<TSchema>>,
+    B2 extends string,
+    T3 extends z.ZodType<z.infer<TSchema>>,
+    B3 extends string,
+    T4 extends z.ZodType<z.infer<TSchema>>,
+    B4 extends string,
+    T5 extends z.ZodType<z.infer<TSchema>>,
+    B5 extends string,
+  >(
+    b2: BrandKit<T2, B2>,
+    b3: BrandKit<T3, B3>,
+    b4: BrandKit<T4, B4>,
+    b5: BrandKit<T5, B5>,
+  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}&${B4}&${B5}`>;
+
+  <
+    Brands extends readonly [
+      BrandKit<z.ZodType<z.infer<TSchema>>, any>,
+      ...BrandKit<z.ZodType<z.infer<TSchema>>, any>[],
+    ],
+  >(
+    brands: [...Brands],
+  ): BrandKit<
+    z.ZodTypeAny,
+    `${TBrand}&${JoinBrands<{ [K in keyof Brands]: ExtractBrandName<Brands[K]> }>}`
+  >;
+}
+
+export type ExtractBrandName<B> = B extends BrandKit<any, infer Name> ? Name : never;
+
+export type JoinBrands<T extends readonly string[]> = T extends readonly [
+  infer First extends string,
+  ...infer Rest extends string[],
+]
+  ? Rest["length"] extends 0
+    ? First
+    : `${First}&${JoinBrands<Rest>}`
+  : string;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BrandKit, BrandedSchema, BrandSymbol } from "./types.js";
+import type { BrandCombineFn, BrandKit, BrandedSchema, BrandSymbol } from "./types.js";
 
 function hasBrand<TBrand extends string>(
   schema: z.ZodTypeAny,
@@ -82,6 +82,28 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     return makeBrand(piped, brandName);
   };
 
+  const combine = ((
+    ...args:
+      | [BrandKit<z.ZodTypeAny, string>, ...BrandKit<z.ZodTypeAny, string>[]]
+      | [readonly BrandKit<z.ZodTypeAny, string>[]]
+  ): BrandKit<z.ZodTypeAny, string> => {
+    const otherBrands =
+      Array.isArray(args[0]) && args.length === 1
+        ? (args[0] as readonly BrandKit<z.ZodTypeAny, string>[])
+        : (args as BrandKit<z.ZodTypeAny, string>[]);
+
+    if (otherBrands.length === 0) {
+      throw new Error("combine requires at least 1 additional brand");
+    }
+
+    const schemas = [brandedSchema, ...otherBrands.map((b) => b.schema)];
+    const combinedName = [brandName, ...otherBrands.map((b) => b.brandName)].join("&");
+
+    const combinedSchema = schemas.reduce((acc, s) => z.intersection(acc, s as z.ZodTypeAny));
+
+    return makeBrand(combinedSchema.brand(combinedName), combinedName);
+  }) as BrandCombineFn<TSchema, TBrand>;
+
   return {
     schema: brandedSchema,
     brandName,
@@ -94,5 +116,6 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     compare,
     refineTo,
     pipeTo,
+    combine,
   };
 }
