@@ -33,10 +33,28 @@ export type BrandedType<T, TBrand extends string> = T & BrandSymbol<TBrand>;
  * @example
  * const schema: BrandedSchema<ZodString, "UserId"> = z.string().uuid().brand<"UserId">();
  */
-export type BrandedSchema<TSchema extends z.ZodTypeAny, TBrand extends string> =
-  TSchema extends z.ZodType<infer TOutput, infer TInput>
-    ? z.ZodType<BrandedType<TOutput, TBrand>, TInput>
-    : never;
+export type BrandedSchema<TSchema extends z.ZodTypeAny, TBrand extends string> = z.ZodType<
+  BrandedType<z.output<TSchema>, TBrand>,
+  z.input<TSchema>
+>;
+
+export type CombinedSchema<
+  TLeft extends z.ZodTypeAny,
+  TRight extends z.ZodTypeAny,
+> = z.ZodIntersection<TLeft, TRight>;
+
+export type KitBrandedSchema<TKit> =
+  TKit extends BrandKit<infer TSchema, infer TBrand> ? BrandedSchema<TSchema, TBrand> : never;
+
+export type CombineSchemas<
+  TCurrent extends z.ZodTypeAny,
+  TBrands extends readonly BrandKit<any, any>[],
+> = TBrands extends readonly [
+  infer TFirst extends BrandKit<any, any>,
+  ...infer TRest extends BrandKit<any, any>[],
+]
+  ? CombineSchemas<CombinedSchema<TCurrent, KitBrandedSchema<TFirst>>, TRest>
+  : TCurrent;
 
 /**
  * Toolkit for creating and validating branded type values.
@@ -155,7 +173,7 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
    * const primitive = UserIdBrand.toPrimitive(userId);
    * // primitive is just string, no brand attached
    */
-  toPrimitive: (value: z.infer<BrandedSchema<TSchema, TBrand>>) => unknown;
+  toPrimitive: (value: z.infer<BrandedSchema<TSchema, TBrand>>) => z.output<TSchema>;
 
   /**
    * Reference equality check for two branded values.
@@ -256,7 +274,9 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
    * );
    * const result = UpperPipe.create("hello"); // "HELLO"
    */
-  pipeTo: <N extends z.ZodTypeAny>(next: N) => BrandKit<z.ZodTypeAny, TBrand>;
+  pipeTo: <N extends z.ZodTypeAny>(
+    next: N,
+  ) => BrandKit<z.ZodPipe<BrandedSchema<TSchema, TBrand>, N>, TBrand>;
 };
 
 /**
@@ -269,7 +289,10 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
 export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends string> {
   <T2 extends z.ZodType<z.infer<TSchema>>, B2 extends string>(
     other: BrandKit<T2, B2>,
-  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}`>;
+  ): BrandKit<
+    CombinedSchema<BrandedSchema<TSchema, TBrand>, BrandedSchema<T2, B2>>,
+    `${TBrand}&${B2}`
+  >;
 
   <
     T2 extends z.ZodType<z.infer<TSchema>>,
@@ -279,7 +302,10 @@ export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends str
   >(
     b2: BrandKit<T2, B2>,
     b3: BrandKit<T3, B3>,
-  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}`>;
+  ): BrandKit<
+    CombineSchemas<BrandedSchema<TSchema, TBrand>, [BrandKit<T2, B2>, BrandKit<T3, B3>]>,
+    `${TBrand}&${B2}&${B3}`
+  >;
 
   <
     T2 extends z.ZodType<z.infer<TSchema>>,
@@ -292,7 +318,13 @@ export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends str
     b2: BrandKit<T2, B2>,
     b3: BrandKit<T3, B3>,
     b4: BrandKit<T4, B4>,
-  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}&${B4}`>;
+  ): BrandKit<
+    CombineSchemas<
+      BrandedSchema<TSchema, TBrand>,
+      [BrandKit<T2, B2>, BrandKit<T3, B3>, BrandKit<T4, B4>]
+    >,
+    `${TBrand}&${B2}&${B3}&${B4}`
+  >;
 
   <
     T2 extends z.ZodType<z.infer<TSchema>>,
@@ -308,7 +340,13 @@ export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends str
     b3: BrandKit<T3, B3>,
     b4: BrandKit<T4, B4>,
     b5: BrandKit<T5, B5>,
-  ): BrandKit<z.ZodTypeAny, `${TBrand}&${B2}&${B3}&${B4}&${B5}`>;
+  ): BrandKit<
+    CombineSchemas<
+      BrandedSchema<TSchema, TBrand>,
+      [BrandKit<T2, B2>, BrandKit<T3, B3>, BrandKit<T4, B4>, BrandKit<T5, B5>]
+    >,
+    `${TBrand}&${B2}&${B3}&${B4}&${B5}`
+  >;
 
   <
     Brands extends readonly [
@@ -318,7 +356,7 @@ export interface BrandCombineFn<TSchema extends z.ZodTypeAny, TBrand extends str
   >(
     brands: [...Brands],
   ): BrandKit<
-    z.ZodTypeAny,
+    CombineSchemas<BrandedSchema<TSchema, TBrand>, Brands>,
     `${TBrand}&${JoinBrands<{ [K in keyof Brands]: ExtractBrandName<Brands[K]> }>}`
   >;
 }
