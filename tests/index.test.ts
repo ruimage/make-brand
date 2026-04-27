@@ -55,6 +55,12 @@ describe("toPrimitive", () => {
     const userId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
     expect(UserIdBrand.toPrimitive(userId)).toBe("550e8400-e29b-41d4-a716-446655440000");
   });
+
+  test("toPrimitive returns object value", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.string() }), "ObjectBrand");
+    const value = ObjectBrand.create({ id: "object-1" });
+    expect(ObjectBrand.toPrimitive(value)).toEqual({ id: "object-1" });
+  });
 });
 
 describe("same", () => {
@@ -89,6 +95,8 @@ describe("same", () => {
 });
 
 describe("compare", () => {
+  const ObjectValueBrand = makeBrand(z.object({ value: z.number() }), "ObjectValue");
+
   test("compare orders values", () => {
     const a = QuantityBrand.create(5);
     const b = QuantityBrand.create(10);
@@ -123,6 +131,24 @@ describe("compare", () => {
     expect(QuantityBrand.compare(b, a)).toBe(1); // default >
     expect(QuantityBrand.compare(a, a)).toBe(0); // default ===
   });
+
+  test("compare returns 0 for distinct plain objects with default comparator", () => {
+    const a = ObjectValueBrand.create({ value: 1 });
+    const b = ObjectValueBrand.create({ value: 2 });
+    expect(ObjectValueBrand.compare(a, b)).toBe(0);
+  });
+
+  test("compare accepts custom object comparator", () => {
+    const a = ObjectValueBrand.create({ value: 1 });
+    const b = ObjectValueBrand.create({ value: 2 });
+    const c = ObjectValueBrand.create({ value: 1 });
+    const compareByValue = (left: typeof a, right: typeof a): -1 | 0 | 1 =>
+      left.value < right.value ? -1 : left.value > right.value ? 1 : 0;
+
+    expect(ObjectValueBrand.compare(a, b, compareByValue)).toBe(-1);
+    expect(ObjectValueBrand.compare(b, a, compareByValue)).toBe(1);
+    expect(ObjectValueBrand.compare(a, c, compareByValue)).toBe(0);
+  });
 });
 
 describe("refineTo", () => {
@@ -143,6 +169,37 @@ describe("pipeTo", () => {
 
     const result = UpperPipe.create("hello");
     expect(result).toBe("HELLO");
+  });
+
+  test("pipeTo transforms string to number", () => {
+    const NumberFromString = makeBrand(z.string().regex(/^\d+$/), "NumberFromString").pipeTo(
+      z.string().transform((value) => Number(value)),
+    );
+
+    expect(NumberFromString.create("42")).toBe(42);
+    expect(() => NumberFromString.create("abc")).toThrow();
+  });
+});
+
+describe("makeBrand", () => {
+  test("creates a brand kit from an already branded schema with the same brand name", () => {
+    const NameBrand = makeBrand(z.string().min(1), "Name");
+    const RecreatedNameBrand = makeBrand(NameBrand.schema, "Name");
+
+    expect(RecreatedNameBrand.brandName).toBe("Name");
+    expect(RecreatedNameBrand.create("John")).toBe("John");
+    expect(RecreatedNameBrand.safeCreate("")).toBeNull();
+    expect(RecreatedNameBrand.matches("John")).toBe(true);
+    expect(RecreatedNameBrand.matches("")).toBe(false);
+  });
+
+  test("creates a brand kit from an already branded schema with a different brand name", () => {
+    const NameBrand = makeBrand(z.string().min(1), "Name");
+    const LabelBrand = makeBrand(NameBrand.schema, "Label");
+
+    expect(LabelBrand.brandName).toBe("Label");
+    expect(LabelBrand.create("John")).toBe("John");
+    expect(() => LabelBrand.create("")).toThrow();
   });
 });
 
@@ -246,9 +303,209 @@ describe("combine", () => {
     expect(PositiveInt.matches(1.5)).toBe(false);
   });
 
+  test("combine keeps ampersand from the first brand name", () => {
+    const LeftBrand = makeBrand(z.number().int(), "A&B");
+    const RightBrand = makeBrand(z.number().positive(), "C");
+    const Combined = LeftBrand.combine(RightBrand);
+
+    expect(Combined.brandName).toBe("A&B&C");
+    expect(Combined.create(1)).toBe(1);
+    expect(Combined.safeCreate(-1)).toBeNull();
+    expect(Combined.safeCreate(1.5)).toBeNull();
+  });
+
+  test("combine keeps ampersand from the second brand name", () => {
+    const LeftBrand = makeBrand(z.number().int(), "A");
+    const RightBrand = makeBrand(z.number().positive(), "B&C");
+    const Combined = LeftBrand.combine(RightBrand);
+
+    expect(Combined.brandName).toBe("A&B&C");
+    expect(Combined.create(1)).toBe(1);
+  });
+
+  test("combine can produce the same brand name from different brand partitions", () => {
+    const First = makeBrand(z.number().int(), "A&B").combine(makeBrand(z.number().positive(), "C"));
+    const Second = makeBrand(z.number().int(), "A").combine(
+      makeBrand(z.number().positive(), "B&C"),
+    );
+
+    expect(First.brandName).toBe("A&B&C");
+    expect(Second.brandName).toBe("A&B&C");
+  });
+
   test("combine with 0 additional brands throws", () => {
     expect(() => IntBrand.combine([] as any)).toThrow(
       "combine requires at least 1 additional brand",
     );
+  });
+
+  test("combine with no arguments throws at runtime", () => {
+    expect(() => (IntBrand.combine as unknown as () => unknown)()).toThrow(
+      "combine requires at least 1 additional brand",
+    );
+  });
+});
+
+describe("regression: makeBrand side effects", () => {
+  test("makeBrand does not execute schema parse during kit creation", () => {
+    let parseCount = 0;
+    const sideEffectSchema = z.string().transform((value) => {
+      parseCount++;
+      return value;
+    });
+
+    parseCount = 0;
+    const BrandKit = makeBrand(sideEffectSchema, "SideEffect");
+    expect(parseCount).toBe(0);
+
+    BrandKit.create("test");
+    expect(parseCount).toBe(1);
+  });
+
+  test("makeBrand with schema that accepts {} does not run transform during kit creation", () => {
+    let transformCount = 0;
+    const transformSchema = z.object({}).transform((value) => {
+      transformCount++;
+      return value;
+    });
+
+    transformCount = 0;
+    const BrandKit = makeBrand(transformSchema, "TransformSideEffect");
+    expect(transformCount).toBe(0);
+
+    BrandKit.create({});
+    expect(transformCount).toBe(1);
+  });
+
+  test("makeBrand with throwing transform does not throw during kit creation", () => {
+    const throwingSchema = z.string().transform(() => {
+      throw new Error("Transform error");
+    });
+
+    expect(() => makeBrand(throwingSchema, "Throwing")).not.toThrow();
+  });
+
+  test("makeBrand with throwing refine does not throw during kit creation", () => {
+    const throwingRefineSchema = z.string().refine(() => {
+      throw new Error("Refine error");
+    });
+
+    expect(() => makeBrand(throwingRefineSchema, "RefineThrowing")).not.toThrow();
+  });
+
+  test("throwing transform throws on actual create", () => {
+    const throwingSchema = z.string().transform(() => {
+      throw new Error("Transform error");
+    });
+    const BrandKit = makeBrand(throwingSchema, "Throwing");
+
+    expect(() => BrandKit.create("test")).toThrow("Transform error");
+  });
+
+  test("throwing refine throws on actual create", () => {
+    const throwingRefineSchema = z.string().refine(() => {
+      throw new Error("Refine error");
+    });
+    const BrandKit = makeBrand(throwingRefineSchema, "RefineThrowing");
+
+    expect(() => BrandKit.create("test")).toThrow("Refine error");
+  });
+});
+
+describe("regression: same() for object brands", () => {
+  test("same returns true for same object reference", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.number() }), "Object");
+    const obj = ObjectBrand.create({ id: 1 });
+
+    expect(ObjectBrand.same(obj, obj)).toBe(true);
+  });
+
+  test("same returns false for distinct equal-shaped objects with default comparison", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.number() }), "Object");
+    const a = ObjectBrand.create({ id: 1 });
+    const b = ObjectBrand.create({ id: 1 });
+
+    expect(ObjectBrand.same(a, b)).toBe(false);
+  });
+
+  test("same returns true with custom comparator by field", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.number() }), "Object");
+    const a = ObjectBrand.create({ id: 1 });
+    const b = ObjectBrand.create({ id: 1 });
+
+    const compareById = (x: typeof a, y: typeof a): boolean => x.id === y.id;
+    expect(ObjectBrand.same(a, b, compareById)).toBe(true);
+  });
+
+  test("same returns false with custom comparator when fields differ", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.number() }), "Object");
+    const a = ObjectBrand.create({ id: 1 });
+    const b = ObjectBrand.create({ id: 2 });
+
+    const compareById = (x: typeof a, y: typeof a): boolean => x.id === y.id;
+    expect(ObjectBrand.same(a, b, compareById)).toBe(false);
+  });
+});
+
+describe("regression: compare() for same object reference", () => {
+  test("compare returns 0 for same object reference", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.number() }), "Object");
+    const obj = ObjectBrand.create({ id: 1 });
+
+    expect(ObjectBrand.compare(obj, obj)).toBe(0);
+  });
+});
+
+describe("regression: pipeTo order and counter", () => {
+  test("invalid input does not reach transform in pipeTo", () => {
+    let transformCallCount = 0;
+    const BaseBrand = makeBrand(z.string().regex(/^\d+$/), "Base");
+
+    const PipedBrand = BaseBrand.pipeTo(
+      z.string().transform((value) => {
+        transformCallCount++;
+        return Number(value);
+      }),
+    );
+
+    transformCallCount = 0;
+    expect(() => PipedBrand.create("abc")).toThrow();
+    expect(transformCallCount).toBe(0);
+  });
+
+  test("valid input runs transform once and produces transformed value", () => {
+    let transformCallCount = 0;
+    const BaseBrand = makeBrand(z.string().regex(/^\d+$/), "Base");
+
+    const PipedBrand = BaseBrand.pipeTo(
+      z.string().transform((value) => {
+        transformCallCount++;
+        return Number(value) * 2;
+      }),
+    );
+
+    transformCallCount = 0;
+    const result = PipedBrand.create("21");
+    expect(transformCallCount).toBe(1);
+    expect(result).toBe(42);
+  });
+
+  test("pipeTo transformation happens exactly once per create call", () => {
+    let transformCallCount = 0;
+    const BaseBrand = makeBrand(z.string(), "Base");
+
+    const PipedBrand = BaseBrand.pipeTo(
+      z.string().transform((value) => {
+        transformCallCount++;
+        return value.toUpperCase();
+      }),
+    );
+
+    transformCallCount = 0;
+    PipedBrand.create("hello");
+    expect(transformCallCount).toBe(1);
+
+    PipedBrand.create("world");
+    expect(transformCallCount).toBe(2);
   });
 });
