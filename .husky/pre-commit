@@ -1,1 +1,1 @@
-npm run check:fix && npm test
+npx --no-install vp check --fix
