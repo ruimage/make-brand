@@ -48,19 +48,19 @@
     "prepare": "husky"
   },
   "devDependencies": {
-    "@types/node": "^25.5.0",
+    "@types/node": "25.5.0",
     "@typescript/native-preview": "7.0.0-dev.20260316.1",
-    "bumpp": "^11.0.1",
-    "husky": "^9.1.7",
-    "typescript": "^5.9.3",
-    "vite-plus": "^0.1.11"
+    "bumpp": "11.0.1",
+    "husky": "9.1.7",
+    "typescript": "5.9.3",
+    "vite-plus": "0.1.17"
   },
   "peerDependencies": {
     "zod": "^4.3.6"
   },
   "overrides": {
-    "vite": "npm:@voidzero-dev/vite-plus-core@latest",
-    "vitest": "npm:@voidzero-dev/vite-plus-test@latest"
+    "vite": "npm:@voidzero-dev/vite-plus-core@0.1.14",
+    "vitest": "npm:@voidzero-dev/vite-plus-test@0.1.14"
   },
   "packageManager": "npm@11.12.0"
 }
