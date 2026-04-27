@@ -1,22 +1,5 @@
 import { z } from "zod";
-import type { BrandCombineFn, BrandKit, BrandedSchema, BrandSymbol } from "./types.js";
-
-function hasBrand<TBrand extends string>(
-  schema: z.ZodTypeAny,
-  brandName: TBrand,
-): schema is z.ZodType<BrandSymbol<TBrand>> {
-  try {
-    const testValue = {} as unknown;
-    const branded = schema.safeParse(testValue);
-    if (branded.success) {
-      const brand = (branded.data as BrandSymbol<TBrand>)[z.$brand];
-      return brand === brandName;
-    }
-    return false;
-  } catch {
-    return false;
-  }
-}
+import type { BrandCombineFn, BrandKit, BrandedSchema } from "./types.js";
 
 /**
  * Creates a branded type toolkit from a Zod schema.
@@ -47,9 +30,7 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
   schema: TSchema,
   brandName: TBrand,
 ): BrandKit<TSchema, TBrand> {
-  const brandedSchema = (hasBrand(schema, brandName)
-    ? schema
-    : schema.brand<TBrand>()) as unknown as BrandedSchema<TSchema, TBrand>;
+  const brandedSchema = schema.brand<TBrand>() as unknown as BrandedSchema<TSchema, TBrand>;
 
   type Brand = z.infer<typeof brandedSchema>;
 
@@ -66,7 +47,7 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     if (!matches(value)) throw new Error(message);
   };
 
-  const toPrimitive = (value: Brand): unknown => value;
+  const toPrimitive = (value: Brand): z.output<TSchema> => value as z.output<TSchema>;
 
   const same = (a: Brand, b: Brand, makeFn?: (a: Brand, b: Brand) => boolean): boolean =>
     makeFn ? makeFn(a, b) : a === b;
@@ -77,8 +58,13 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
   const refineTo = <N extends z.ZodTypeAny>(next: N): BrandKit<N, TBrand> =>
     makeBrand(next, brandName);
 
-  const pipeTo = <N extends z.ZodTypeAny>(next: N): BrandKit<z.ZodTypeAny, TBrand> => {
-    const piped = z.pipe(brandedSchema as z.ZodTypeAny, next);
+  const pipeTo = <N extends z.ZodTypeAny>(
+    next: N,
+  ): BrandKit<z.ZodPipe<BrandedSchema<TSchema, TBrand>, N>, TBrand> => {
+    const piped = z.pipe(
+      brandedSchema,
+      next as z.ZodType<z.output<N>, z.output<typeof brandedSchema>>,
+    ) as z.ZodPipe<BrandedSchema<TSchema, TBrand>, N>;
     return makeBrand(piped, brandName);
   };
 
