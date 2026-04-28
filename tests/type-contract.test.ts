@@ -319,6 +319,30 @@ export type ObjectPipedToPrimitiveIsObjectTest = Expect<
 type ExistingPipeToPrimitive = ReturnType<typeof NumberFromStringBrand.toPrimitive>;
 export type ExistingPipeToPrimitiveIsNumberTest = Expect<Equal<ExistingPipeToPrimitive, number>>;
 
+function assertSafeParseWithErrorNarrowing() {
+  const rawUserId = "550e8400-e29b-41d4-a716-446655440000";
+  const result = UserIdBrand.safeParseWithError(rawUserId);
+
+  function acceptUserId(value: UserId) {
+    return value;
+  }
+
+  // @ts-expect-error must check result.success before accessing data
+  const _dataWithoutCheck: UserId = result.data;
+
+  if (result.success) {
+    acceptUserId(result.data);
+  }
+
+  if (!result.success) {
+    void result.error.issues;
+  }
+
+  void _dataWithoutCheck;
+}
+
+assertSafeParseWithErrorNarrowing();
+
 describe("type contract", () => {
   test("compiles", () => {
     expectTypeContract(assertBrandContracts);

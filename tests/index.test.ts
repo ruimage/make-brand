@@ -29,6 +29,55 @@ describe("safeCreate", () => {
   });
 });
 
+describe("safeParseWithError", () => {
+  test("safeParseWithError returns success with data for valid value", () => {
+    const result = UserIdBrand.safeParseWithError("550e8400-e29b-41d4-a716-446655440000");
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe("550e8400-e29b-41d4-a716-446655440000");
+    }
+  });
+
+  test("safeParseWithError returns failure with ZodError for invalid value", () => {
+    const result = UserIdBrand.safeParseWithError("invalid");
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(z.ZodError);
+      expect(result.error.issues.length).toBeGreaterThan(0);
+    }
+  });
+
+  test("safeParseWithError preserves ZodError issues", () => {
+    const result = UserIdBrand.safeParseWithError("not-a-uuid");
+    if (!result.success) {
+      const message = result.error.message;
+      expect(message).toContain("Invalid UUID");
+    }
+  });
+
+  test("safeParseWithError returns success for combined brand", () => {
+    const IntBrand = makeBrand(z.number().int(), "Int");
+    const PositiveBrand = makeBrand(z.number().positive(), "Positive");
+    const PositiveInt = IntBrand.combine(PositiveBrand);
+    const result = PositiveInt.safeParseWithError(5);
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data).toBe(5);
+    }
+  });
+
+  test("safeParseWithError returns failure for combined brand invalid input", () => {
+    const IntBrand = makeBrand(z.number().int(), "Int");
+    const PositiveBrand = makeBrand(z.number().positive(), "Positive");
+    const PositiveInt = IntBrand.combine(PositiveBrand);
+    const result = PositiveInt.safeParseWithError(-1);
+    expect(result.success).toBe(false);
+    if (!result.success) {
+      expect(result.error).toBeInstanceOf(z.ZodError);
+    }
+  });
+});
+
 describe("matches", () => {
   test("matches type guard returns true for valid value", () => {
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
