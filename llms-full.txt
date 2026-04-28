@@ -46,6 +46,7 @@ Returns a `BrandKit` object with the following fields:
 |--------|-----------|---------|---------|
 | `create(value)` | `(value: unknown) => Brand` | Yes — `ZodError` | Branded value |
 | `safeCreate(value)` | `(value: unknown) => Brand \| null` | No | Branded value or `null` |
+| `safeParseWithError(value)` | `(value: unknown) => { success: true; data: Brand } \| { success: false; error: ZodError }` | No | Discriminated union with full ZodError on failure |
 | `matches(value)` | `(value: unknown) => value is Brand` | No | `boolean` — acts as type guard |
 | `ensure(value, message?)` | `(value: unknown, message?: string) => asserts value is Brand` | Yes — `Error` | `void` |
 
@@ -117,6 +118,19 @@ const maybeId = UserIdBrand.safeCreate("not-a-uuid");
 
 const validId = UserIdBrand.safeCreate("550e8400-e29b-41d4-a716-446655440000");
 // validId === "550e8400-e29b-41d4-a716-446655440000" (branded)
+```
+
+### 2b. Safe Parse with Error Details
+
+When you need `ZodError.issues` instead of just `null`:
+
+```ts
+const result = UserIdBrand.safeParseWithError("not-a-uuid");
+if (result.success) {
+  // result.data is UserId
+} else {
+  console.log(result.error.issues); // full ZodError diagnostics
+}
 ```
 
 ### 3. Type Guard — Narrowing `unknown`

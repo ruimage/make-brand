@@ -69,6 +69,7 @@ const Brand = makeBrand(schema, "BrandName");
 | `brandName`                 | Runtime brand name                                                                   |
 | `create(value)`             | Parses and returns a branded value, throws on invalid input                          |
 | `safeCreate(value)`         | Returns a branded value or `null`                                                    |
+| `safeParseWithError(value)` | Returns `{ success: true, data }` or `{ success: false, error: ZodError }`           |
 | `matches(value)`            | Runtime type guard based on schema validation                                        |
 | `ensure(value, message?)`   | Assertion helper, throws `Error` on invalid input                                    |
 | `toPrimitive(value)`        | Returns the underlying runtime value                                                 |
@@ -89,6 +90,11 @@ const UserIdBrand = makeBrand(z.string().uuid(), "UserId");
 const strictUserId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
 const maybeUserId = UserIdBrand.safeCreate("not-a-uuid");
 // maybeUserId === null
+
+const parsed = UserIdBrand.safeParseWithError("not-a-uuid");
+if (!parsed.success) {
+  console.log(parsed.error.issues); // full ZodError details
+}
 
 const input: unknown = "550e8400-e29b-41d4-a716-446655440000";
 
