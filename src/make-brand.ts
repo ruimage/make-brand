@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { BrandCombineFn, BrandKit, BrandedSchema } from "./types.js";
+import type { BrandCombineFn, BrandKit, BrandedSchema, MakeBrandConfig } from "./types.js";
 
 /**
  * Creates a branded type toolkit from a Zod schema.
@@ -11,6 +11,7 @@ import type { BrandCombineFn, BrandKit, BrandedSchema } from "./types.js";
  * @template TBrand - The unique brand identifier (string literal type)
  * @param schema - Zod schema to apply branding to
  * @param brandName - Unique brand identifier for this type
+ * @param config - Optional configuration (custom errorMessage for ensure)
  * @returns BrandKit containing creation, validation, and utility methods
  *
  * @example
@@ -21,14 +22,27 @@ import type { BrandCombineFn, BrandKit, BrandedSchema } from "./types.js";
  * const safeId = UserIdBrand.safeCreate("invalid"); // returns null
  *
  * @example
- * // Using branded types in function signatures for type safety
- * const getUserById = (id: UserId) => { ... };
- * const orderId: OrderId = OrderIdBrand.create("order-123");
- * getUserById(orderId); // Type error: OrderId is not assignable to UserId
+ * // With custom error message
+ * const StrictBrand = makeBrand(z.string().uuid(), "StrictId", {
+ *   errorMessage: (value, name) => `"${value}" is not a valid ${name}`,
+ * });
  */
 export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
   schema: TSchema,
   brandName: TBrand,
+  config?: MakeBrandConfig,
+): BrandKit<TSchema, TBrand> {
+  if (brandName.includes("&")) {
+    throw new Error("Brand name must not contain '&'");
+  }
+  return makeBrandInternal(schema, brandName, [brandName], config);
+}
+
+function makeBrandInternal<TSchema extends z.ZodTypeAny, TBrand extends string>(
+  schema: TSchema,
+  brandName: TBrand,
+  brandNames: readonly string[],
+  config?: MakeBrandConfig,
 ): BrandKit<TSchema, TBrand> {
   const brandedSchema = schema.brand<TBrand>() as unknown as BrandedSchema<TSchema, TBrand>;
 
@@ -52,8 +66,22 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
 
   const matches = (value: unknown): value is Brand => brandedSchema.safeParse(value).success;
 
-  const ensure = (value: unknown, message = `Invalid ${brandName}`): asserts value is Brand => {
-    if (!matches(value)) throw new Error(message);
+  const validate = (value: unknown): value is z.output<TSchema> =>
+    brandedSchema.safeParse(value).success;
+
+  const from = (value: unknown): Brand => value as Brand;
+
+  const ensure = (value: unknown, message?: string): asserts value is Brand => {
+    if (!matches(value)) {
+      const resolved =
+        message ??
+        (config?.errorMessage
+          ? typeof config.errorMessage === "function"
+            ? config.errorMessage(value, brandName)
+            : config.errorMessage
+          : `Invalid ${brandName}`);
+      throw new Error(resolved);
+    }
   };
 
   const toPrimitive = (value: Brand): z.output<TSchema> => value as z.output<TSchema>;
@@ -65,7 +93,7 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     makeFn ? makeFn(a, b) : a < b ? -1 : a > b ? 1 : 0;
 
   const refineTo = <N extends z.ZodTypeAny>(next: N): BrandKit<N, TBrand> =>
-    makeBrand(next, brandName);
+    makeBrandInternal(next, brandName, brandNames, config);
 
   const pipeTo = <N extends z.ZodTypeAny>(
     next: N,
@@ -74,7 +102,7 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
       brandedSchema,
       next as z.ZodType<z.output<N>, z.output<typeof brandedSchema>>,
     ) as z.ZodPipe<BrandedSchema<TSchema, TBrand>, N>;
-    return makeBrand(piped, brandName);
+    return makeBrandInternal(piped, brandName, brandNames, config);
   };
 
   const combine = ((
@@ -93,21 +121,26 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
 
     const schemas = [brandedSchema, ...otherBrands.map((b) => b.schema)];
     const combinedName = [brandName, ...otherBrands.map((b) => b.brandName)].join("&");
+    const combinedNames = [...brandNames, ...otherBrands.flatMap((b) => b.brandNames)];
 
     const combinedSchema = schemas.reduce((acc, s) => z.intersection(acc, s as z.ZodTypeAny));
 
-    return makeBrand(combinedSchema.brand(combinedName), combinedName);
+    return makeBrandInternal(combinedSchema.brand(combinedName), combinedName, combinedNames);
   }) as BrandCombineFn<TSchema, TBrand>;
 
   return {
     schema: brandedSchema,
     brandName,
+    brandNames,
     create,
     safeCreate,
     safeParseWithError,
     matches,
+    validate,
+    from,
     ensure,
     toPrimitive,
+    unwrap: toPrimitive,
     same,
     compare,
     refineTo,

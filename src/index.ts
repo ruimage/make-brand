@@ -7,4 +7,5 @@ export type {
   BrandCombineFn,
   ExtractBrandName,
   JoinBrands,
+  MakeBrandConfig,
 } from "./types.js";
