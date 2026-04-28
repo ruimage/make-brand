@@ -128,6 +128,28 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
   safeCreate: (value: unknown) => z.infer<BrandedSchema<TSchema, TBrand>> | null;
 
   /**
+   * Safely parses a value and returns a discriminated result with detailed error info.
+   * Unlike `safeCreate` (which returns `null` on failure), this preserves the full `ZodError`
+   * so callers can inspect individual issues.
+   *
+   * @param value - The raw value to validate and brand
+   * @returns `{ success: true, data }` or `{ success: false, error: ZodError }`
+   *
+   * @example
+   * const result = UserIdBrand.safeParseWithError("not-a-uuid");
+   * if (result.success) {
+   *   // result.data is UserId
+   * } else {
+   *   console.log(result.error.issues);
+   * }
+   */
+  safeParseWithError: (
+    value: unknown,
+  ) =>
+    | { success: true; data: z.infer<BrandedSchema<TSchema, TBrand>> }
+    | { success: false; error: z.ZodError };
+
+  /**
    * Type guard function that checks if a value matches the branded type.
    * Performs runtime validation and narrows the type on success.
    *

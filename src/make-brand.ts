@@ -41,6 +41,15 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     return r.success ? (r.data as Brand) : null;
   };
 
+  const safeParseWithError = (
+    value: unknown,
+  ): { success: true; data: Brand } | { success: false; error: z.ZodError } => {
+    const r = brandedSchema.safeParse(value);
+    return r.success
+      ? { success: true, data: r.data as Brand }
+      : { success: false, error: r.error };
+  };
+
   const matches = (value: unknown): value is Brand => brandedSchema.safeParse(value).success;
 
   const ensure = (value: unknown, message = `Invalid ${brandName}`): asserts value is Brand => {
@@ -95,6 +104,7 @@ export function makeBrand<TSchema extends z.ZodTypeAny, TBrand extends string>(
     brandName,
     create,
     safeCreate,
+    safeParseWithError,
     matches,
     ensure,
     toPrimitive,
