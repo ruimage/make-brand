@@ -28,8 +28,12 @@
   ],
   "type": "module",
   "types": "./dist/index.d.mts",
+  "sideEffects": false,
   "exports": {
-    ".": "./dist/index.mjs",
+    ".": {
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
+    },
     "./package.json": "./package.json"
   },
   "publishConfig": {
