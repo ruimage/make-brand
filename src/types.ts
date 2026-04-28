@@ -1,6 +1,17 @@
 import { z } from "zod";
 
 /**
+ * Optional configuration for makeBrand.
+ */
+export interface MakeBrandConfig {
+  /**
+   * Custom error message for the `ensure` method.
+   * Can be a static string or a function that receives the invalid value and brand name.
+   */
+  errorMessage?: string | ((value: unknown, brandName: string) => string);
+}
+
+/**
  * Brand marker symbol used internally by Zod for branded types.
  * Contains a readonly property with the Zod brand key and the brand name.
  *
@@ -92,6 +103,13 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
   readonly brandName: TBrand;
 
   /**
+   * List of all contributing brand names.
+   * For simple brands: `["BrandName"]`.
+   * For combined brands: `["Int", "Positive", ...]`.
+   */
+  readonly brandNames: readonly string[];
+
+  /**
    * Creates a branded value by parsing and validating the input.
    * Throws a ZodError if validation fails.
    *
@@ -165,8 +183,21 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
   matches: (value: unknown) => value is z.infer<BrandedSchema<TSchema, TBrand>>;
 
   /**
+   * Type guard that validates value against the schema and narrows to the primitive type.
+   * Unlike `matches` (which narrows to the branded type), this narrows to the unbranded output.
+   */
+  validate: (value: unknown) => value is z.output<TSchema>;
+
+  /**
+   * Creates a branded value without validation. Trusts that the value is already valid.
+   * Use only when the value has been validated upstream.
+   */
+  from: (value: unknown) => z.infer<BrandedSchema<TSchema, TBrand>>;
+
+  /**
    * Assertion function that throws if value doesn't match the branded type.
-   * Use when you want to assert validity with a custom error message.
+   * Uses `config.errorMessage` if provided, otherwise `"Invalid {brandName}"`.
+   * Explicit `message` parameter overrides config.
    *
    * @param value - The value to validate
    * @param message - Optional custom error message (default: "Invalid {brandName}")
@@ -196,6 +227,14 @@ export type BrandKit<TSchema extends z.ZodTypeAny, TBrand extends string> = {
    * // primitive is just string, no brand attached
    */
   toPrimitive: (value: z.infer<BrandedSchema<TSchema, TBrand>>) => z.output<TSchema>;
+
+  /**
+   * Alias for toPrimitive. Strips brand typing, returns raw unbranded value.
+   *
+   * @param value - The branded value to unwrap
+   * @returns The underlying unbranded value
+   */
+  readonly unwrap: (value: z.infer<BrandedSchema<TSchema, TBrand>>) => z.output<TSchema>;
 
   /**
    * Reference equality check for two branded values.
