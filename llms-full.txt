@@ -28,7 +28,7 @@ bun add @rzv/make-brand zod
 
 ## API Reference
 
-### `makeBrand(schema, brandName)` → `BrandKit`
+### `makeBrand(schema, brandName, config?)` → `BrandKit`
 
 ```ts
 import { z } from "zod";
@@ -36,6 +36,11 @@ import { makeBrand } from "@rzv/make-brand";
 
 const UserIdBrand = makeBrand(z.string().uuid(), "UserId");
 type UserId = z.infer<typeof UserIdBrand.schema>;
+
+// With custom error message:
+const StrictBrand = makeBrand(z.string().uuid(), "StrictId", {
+  errorMessage: (value, name) => `"${value}" is not a valid ${name}`,
+});
 ```
 
 Returns a `BrandKit` object with the following fields:
@@ -48,7 +53,9 @@ Returns a `BrandKit` object with the following fields:
 | `safeCreate(value)` | `(value: unknown) => Brand \| null` | No | Branded value or `null` |
 | `safeParseWithError(value)` | `(value: unknown) => { success: true; data: Brand } \| { success: false; error: ZodError }` | No | Discriminated union with full ZodError on failure |
 | `matches(value)` | `(value: unknown) => value is Brand` | No | `boolean` — acts as type guard |
-| `ensure(value, message?)` | `(value: unknown, message?: string) => asserts value is Brand` | Yes — `Error` | `void` |
+| `validate(value)` | `(value: unknown) => value is z.output<TSchema>` | No | Type guard that narrows to the unbranded primitive type |
+| `from(value)` | `(value: unknown) => Brand` | No | Creates branded value without validation (trust-based) |
+| `ensure(value, message?)` | `(value: unknown, message?: string) => asserts value is Brand` | Yes — `Error` | `void`. Uses `config.errorMessage` if provided, otherwise `"Invalid {brandName}"`. Explicit `message` overrides config. |
 
 ### Properties
 
@@ -56,12 +63,14 @@ Returns a `BrandKit` object with the following fields:
 |----------|------|-------------|
 | `schema` | `BrandedSchema<TSchema, TBrand>` | Branded Zod schema — use in `z.object()` composition |
 | `brandName` | `TBrand` (string literal) | Runtime brand name, e.g. `"UserId"` |
+| `brandNames` | `readonly string[]` | List of all contributing brand names. For simple brands: `["Name"]`. For combined: `["Int", "Positive", ...]`. |
 
 ### Utilities
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `toPrimitive(value)` | `(value: Brand) => z.output<TSchema>` | Strips brand typing, returns raw unbranded schema output |
+| `unwrap(value)` | `(value: Brand) => z.output<TSchema>` | Alias for `toPrimitive`. Strips brand typing, returns raw unbranded value. |
 | `same(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => boolean` | Equality check. Default: `===`. Accepts custom comparator. |
 | `compare(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => -1 \| 0 \| 1` | Sort helper. Default: `<` / `>`. Works with `Array.sort()`. |
 
@@ -84,6 +93,7 @@ import type {
   BrandCombineFn,     // Overloaded combine function signature
   ExtractBrandName,   // Extract brand name from BrandKit
   JoinBrands,         // Join tuple of brand names with &
+  MakeBrandConfig,    // Optional configuration for makeBrand (errorMessage)
 } from "@rzv/make-brand";
 ```
 

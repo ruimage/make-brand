@@ -61,18 +61,30 @@ At runtime, `userId` is still just a string. The brand exists to improve type sa
 const Brand = makeBrand(schema, "BrandName");
 ```
 
+With optional configuration:
+
+```ts
+const Brand = makeBrand(schema, "BrandName", {
+  errorMessage: (value, name) => `"${value}" is not a valid ${name}`,
+});
+```
+
 `makeBrand` returns a `BrandKit` with the following fields:
 
 | Field / method              | Description                                                                          |
 | --------------------------- | ------------------------------------------------------------------------------------ |
 | `schema`                    | Branded Zod schema you can reuse in larger schemas                                   |
 | `brandName`                 | Runtime brand name                                                                   |
+| `brandNames`                | `readonly string[]` — list of all contributing brand names                           |
 | `create(value)`             | Parses and returns a branded value, throws on invalid input                          |
 | `safeCreate(value)`         | Returns a branded value or `null`                                                    |
 | `safeParseWithError(value)` | Returns `{ success: true, data }` or `{ success: false, error: ZodError }`           |
 | `matches(value)`            | Runtime type guard based on schema validation                                        |
+| `validate(value)`           | Type guard that narrows to the unbranded primitive type                              |
+| `from(value)`               | Creates a branded value without validation (trust-based)                             |
 | `ensure(value, message?)`   | Assertion helper, throws `Error` on invalid input                                    |
 | `toPrimitive(value)`        | Returns the underlying runtime value                                                 |
+| `unwrap(value)`             | Alias for `toPrimitive` — strips brand typing, returns raw value                     |
 | `same(a, b, compareFn?)`    | Equality check, default is strict equality                                           |
 | `compare(a, b, compareFn?)` | Sort helper, default uses `<` / `>`                                                  |
 | `combine(...brands)`        | Combines this brand with 1-4 additional brands or an array via intersection          |
@@ -106,6 +118,16 @@ UserIdBrand.ensure(input, "Invalid user id");
 
 const rawValue = UserIdBrand.toPrimitive(strictUserId);
 // rawValue is the same runtime string without branded typing
+
+const trusted = UserIdBrand.from("550e8400-e29b-41d4-a716-446655440000");
+// No validation — use only when value is already verified
+
+if (UserIdBrand.validate(input)) {
+  // input is narrowed to string (unbranded)
+}
+
+const sameRaw = UserIdBrand.unwrap(strictUserId);
+// unwrap is an alias for toPrimitive
 ```
 
 ## Schema Composition
@@ -196,6 +218,7 @@ const PositiveBrand = makeBrand(z.number().positive(), "Positive");
 
 const PositiveInt = IntBrand.combine(PositiveBrand);
 // PositiveInt.brandName === "Int&Positive"
+// PositiveInt.brandNames === ["Int", "Positive"]
 
 PositiveInt.create(5); // 5
 PositiveInt.create(-1); // throws ZodError (not positive)
@@ -234,6 +257,7 @@ The package also exports the main utility types:
 - `BrandedType<T, B>` — `T & BrandSymbol<B>`
 - `BrandedSchema<TSchema, B>` — a Zod schema that produces branded output
 - `BrandCombineFn` — overloaded function signature for `combine`
+- `MakeBrandConfig` — optional configuration for `makeBrand` (custom `errorMessage`)
 - `ExtractBrandName<B>` — extracts the brand name from a `BrandKit`
 - `JoinBrands<T>` — joins a tuple of brand names with `&`
 
