@@ -144,7 +144,7 @@ describe("ensure with config", () => {
 
   test("ensure with function errorMessage throws result of function", () => {
     const Brand = makeBrand(z.string().uuid(), "DynamicId", {
-      errorMessage: (value, name) => `Value "${value}" is not a valid ${name}`,
+      errorMessage: (value, name) => `Value "${String(value)}" is not a valid ${name}`,
     });
     expect(() => Brand.ensure("bad")).toThrow('Value "bad" is not a valid DynamicId');
   });
