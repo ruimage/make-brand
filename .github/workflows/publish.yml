@@ -53,6 +53,6 @@ jobs:
           echo "Build output verified successfully"
 
       - name: Publish to npm
-        run: npm publish --provenance --access public --otp=${{secrets.NPM_TOKEN}}
+        run: npm publish --provenance --access public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
