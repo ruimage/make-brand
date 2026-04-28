@@ -150,6 +150,8 @@ You can also override the comparison for a single call:
 QuantityBrand.compare(a, b, (x, y) => (x > y ? -1 : x < y ? 1 : 0));
 ```
 
+Important: default `compare` uses `<` / `>` and is intended for primitive values (`string`, `number`, `bigint`, `Date` with proper coercion strategy). For non-primitive objects, default comparison can return `0` for distinct values, so pass a custom comparator.
+
 ## `refineTo` and `pipeTo`
 
 These two methods look similar, but they behave differently:

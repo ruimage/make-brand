@@ -12,5 +12,3 @@
 - [Type definitions](./src/types.ts): BrandKit, BrandSymbol, BrandedType, BrandedSchema, BrandCombineFn types
 - [Test suite](./tests/index.test.ts): Comprehensive tests for all methods
 
-## Optional
-- [LLM Guide](./LLM-GUIDE.md): Standalone reference file optimized for LLM context windows

@@ -60,7 +60,7 @@ Returns a `BrandKit` object with the following fields:
 
 | Method | Signature | Description |
 |--------|-----------|-------------|
-| `toPrimitive(value)` | `(value: Brand) => unknown` | Strips brand typing, returns raw value |
+| `toPrimitive(value)` | `(value: Brand) => z.output<TSchema>` | Strips brand typing, returns raw unbranded schema output |
 | `same(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => boolean` | Equality check. Default: `===`. Accepts custom comparator. |
 | `compare(a, b, fn?)` | `(a: Brand, b: Brand, fn?) => -1 \| 0 \| 1` | Sort helper. Default: `<` / `>`. Works with `Array.sort()`. |
 
@@ -69,7 +69,7 @@ Returns a `BrandKit` object with the following fields:
 | Method | Signature | Description |
 |--------|-----------|-------------|
 | `refineTo(nextSchema)` | `<N>(next: N) => BrandKit<N, TBrand>` | Replace schema with new one, keep same brand name. Does NOT preserve previous constraints. |
-| `pipeTo(nextSchema)` | `<N>(next: N) => BrandKit<ZodTypeAny, TBrand>` | Pipe current branded schema into another schema (e.g. with `.transform()`). Keeps brand. |
+| `pipeTo(nextSchema)` | `<N>(next: N) => BrandKit<z.ZodPipe<BrandedSchema<TSchema, TBrand>, N>, TBrand>` | Pipe current branded schema into another schema (e.g. with `.transform()`). Keeps brand and preserves precise piped output type. |
 | `combine(...brands)` | `(b1, b2?, b3?, b4?) => BrandKit` or `([b1, b2, ...]) => BrandKit` | Intersection of schemas. Brand name joins with `&`. Up to 4 additional brands as args, or pass an array. |
 
 ### Exported Types
@@ -186,6 +186,8 @@ const sorted = [b, a].sort(QuantityBrand.compare);
 QuantityBrand.compare(a, b, (x, y) => x > y ? -1 : x < y ? 1 : 0);
 ```
 
+> **Important**: default `compare` uses `<` / `>` and is reliable for primitive-like comparable values. For non-primitive objects, default comparison may return `0` for distinct values, so provide a custom comparator.
+
 ### 8. `refineTo` — Tighter Constraints, Same Brand
 
 ```ts
@@ -242,8 +244,8 @@ Schema.parse({ value: 42 }); // OK
 
 ```ts
 const userId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
-const raw: unknown = UserIdBrand.toPrimitive(userId);
-// raw is the same string, but without branded typing
+const raw: string = UserIdBrand.toPrimitive(userId);
+// raw is the same runtime string, but without branded typing
 ```
 
 ---
