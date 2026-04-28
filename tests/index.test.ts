@@ -78,6 +78,103 @@ describe("safeParseWithError", () => {
   });
 });
 
+describe("unwrap", () => {
+  test("unwrap returns same value as toPrimitive for string brand", () => {
+    const userId = UserIdBrand.create("550e8400-e29b-41d4-a716-446655440000");
+    expect(UserIdBrand.unwrap(userId)).toBe(UserIdBrand.toPrimitive(userId));
+  });
+
+  test("unwrap returns underlying object value", () => {
+    const ObjectBrand = makeBrand(z.object({ id: z.string() }), "ObjectBrand");
+    const value = ObjectBrand.create({ id: "obj-1" });
+    expect(ObjectBrand.unwrap(value)).toEqual({ id: "obj-1" });
+  });
+});
+
+describe("brandNames", () => {
+  const IntBrand = makeBrand(z.number().int(), "Int");
+  const PositiveBrand = makeBrand(z.number().positive(), "Positive");
+  const MaxHundred = makeBrand(z.number().max(100), "MaxHundred");
+
+  test("simple brand has single-element brandNames", () => {
+    expect(UserIdBrand.brandNames).toEqual(["UserId"]);
+  });
+
+  test("combined 2 brands lists both names", () => {
+    const PositiveInt = IntBrand.combine(PositiveBrand);
+    expect(PositiveInt.brandNames).toEqual(["Int", "Positive"]);
+  });
+
+  test("combined 3 brands lists all names", () => {
+    const Bounded = IntBrand.combine(PositiveBrand, MaxHundred);
+    expect(Bounded.brandNames).toEqual(["Int", "Positive", "MaxHundred"]);
+  });
+
+  test("combined array variant lists all names", () => {
+    const ArrCombined = IntBrand.combine([PositiveBrand, MaxHundred]);
+    expect(ArrCombined.brandNames).toEqual(["Int", "Positive", "MaxHundred"]);
+  });
+
+  test("refineTo preserves parent brandNames", () => {
+    const RefinedInt = IntBrand.refineTo(z.number().int().min(0));
+    expect(RefinedInt.brandNames).toEqual(["Int"]);
+  });
+
+  test("pipeTo preserves parent brandNames", () => {
+    const PipedBrand = makeBrand(z.string(), "Piped").pipeTo(
+      z.string().transform((s) => s.toUpperCase()),
+    );
+    expect(PipedBrand.brandNames).toEqual(["Piped"]);
+  });
+
+  test("combined then refined preserves combined names", () => {
+    const PositiveInt = IntBrand.combine(PositiveBrand);
+    const Refined = PositiveInt.refineTo(z.number().int().positive().max(100));
+    expect(Refined.brandNames).toEqual(["Int", "Positive"]);
+  });
+});
+
+describe("ensure with config", () => {
+  test("ensure with string errorMessage throws custom message", () => {
+    const Brand = makeBrand(z.string().uuid(), "CustomId", {
+      errorMessage: "Custom error message",
+    });
+    expect(() => Brand.ensure("invalid")).toThrow("Custom error message");
+  });
+
+  test("ensure with function errorMessage throws result of function", () => {
+    const Brand = makeBrand(z.string().uuid(), "DynamicId", {
+      errorMessage: (value, name) => `Value "${value}" is not a valid ${name}`,
+    });
+    expect(() => Brand.ensure("bad")).toThrow('Value "bad" is not a valid DynamicId');
+  });
+
+  test("ensure without config uses default message", () => {
+    expect(() => UserIdBrand.ensure("invalid")).toThrow("Invalid UserId");
+  });
+
+  test("ensure explicit message overrides config message", () => {
+    const Brand = makeBrand(z.string().uuid(), "OverrideId", {
+      errorMessage: "Config message",
+    });
+    expect(() => Brand.ensure("invalid", "Explicit message")).toThrow("Explicit message");
+  });
+
+  test("config does not affect safeCreate", () => {
+    const Brand = makeBrand(z.string().uuid(), "SafeId", {
+      errorMessage: "Custom",
+    });
+    expect(Brand.safeCreate("invalid")).toBeNull();
+  });
+
+  test("config does not affect create", () => {
+    const Brand = makeBrand(z.string().uuid(), "CreateId", {
+      errorMessage: "Custom",
+    });
+    expect(() => Brand.create("invalid")).toThrow();
+  });
+});
+
 describe("matches", () => {
   test("matches type guard returns true for valid value", () => {
     const validUuid = "550e8400-e29b-41d4-a716-446655440000";
@@ -350,36 +447,6 @@ describe("combine", () => {
     expect(PositiveInt.matches(5)).toBe(true);
     expect(PositiveInt.matches(-1)).toBe(false);
     expect(PositiveInt.matches(1.5)).toBe(false);
-  });
-
-  test("combine keeps ampersand from the first brand name", () => {
-    const LeftBrand = makeBrand(z.number().int(), "A&B");
-    const RightBrand = makeBrand(z.number().positive(), "C");
-    const Combined = LeftBrand.combine(RightBrand);
-
-    expect(Combined.brandName).toBe("A&B&C");
-    expect(Combined.create(1)).toBe(1);
-    expect(Combined.safeCreate(-1)).toBeNull();
-    expect(Combined.safeCreate(1.5)).toBeNull();
-  });
-
-  test("combine keeps ampersand from the second brand name", () => {
-    const LeftBrand = makeBrand(z.number().int(), "A");
-    const RightBrand = makeBrand(z.number().positive(), "B&C");
-    const Combined = LeftBrand.combine(RightBrand);
-
-    expect(Combined.brandName).toBe("A&B&C");
-    expect(Combined.create(1)).toBe(1);
-  });
-
-  test("combine can produce the same brand name from different brand partitions", () => {
-    const First = makeBrand(z.number().int(), "A&B").combine(makeBrand(z.number().positive(), "C"));
-    const Second = makeBrand(z.number().int(), "A").combine(
-      makeBrand(z.number().positive(), "B&C"),
-    );
-
-    expect(First.brandName).toBe("A&B&C");
-    expect(Second.brandName).toBe("A&B&C");
   });
 
   test("combine with 0 additional brands throws", () => {

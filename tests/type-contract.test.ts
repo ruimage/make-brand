@@ -343,6 +343,11 @@ function assertSafeParseWithErrorNarrowing() {
 
 assertSafeParseWithErrorNarrowing();
 
+const UnwrapStringBrand = makeBrand(z.string(), "UnwrapString");
+type UnwrapStringResult = ReturnType<typeof UnwrapStringBrand.unwrap>;
+export type UnwrapStringTest = Expect<Equal<UnwrapStringResult, string>>;
+export type UnwrapStringNotUnknownTest = Expect<NotUnknown<UnwrapStringResult>>;
+
 describe("type contract", () => {
   test("compiles", () => {
     expectTypeContract(assertBrandContracts);
